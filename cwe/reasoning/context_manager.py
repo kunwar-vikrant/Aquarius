@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
-from cwe.models.artifact import Artifact, VideoArtifact, LogArtifact
+from cwe.models.artifact import Artifact, VideoArtifact, LogArtifact, ReportArtifact
 from cwe.models.timeline import Event
 
 
@@ -295,7 +295,21 @@ class ContextManager:
                 f"Format: {artifact.log_format}",
                 f"Entries: {artifact.entry_count}",
             ])
-        
+            # Include content preview (up to 2000 chars)
+            if artifact.raw_content:
+                preview = artifact.raw_content[:4000]
+                summary_parts.append("\nLog Content Preview:\n" + preview)
+                if len(artifact.raw_content) > 4000:
+                    summary_parts.append(f"\n... (remaining {len(artifact.raw_content)-4000} chars truncated)")
+                    
+        elif isinstance(artifact, ReportArtifact): 
+            # Include content preview
+            if artifact.full_text:
+                preview = artifact.full_text[:4000]
+                summary_parts.append("\nReport Content:\n" + preview)
+                if len(artifact.full_text) > 4000:
+                    summary_parts.append(f"\n... (remaining {len(artifact.full_text)-4000} chars truncated)")
+
         summary = "\n".join(p for p in summary_parts if p)
         self._summaries[cache_key] = summary
         return summary

@@ -88,6 +88,11 @@ class TimelineReasoner:
         self._entities: dict[str, Entity] = {}
         self._events: dict[str, Event] = {}
         self._uncertainties: list[dict[str, Any]] = []
+
+    @property
+    def timeline(self) -> Timeline | None:
+        """Get the current timeline."""
+        return self._timeline
         self._messages: list[Message] = []
     
     async def build_timeline(

@@ -127,6 +127,9 @@ class LogArtifact(Artifact):
     log_format: str | None = None  # syslog, json, csv, custom
     timestamp_format: str | None = None
     
+    # Raw content for small logs
+    raw_content: str | None = None
+
     # Parsed entries (may be stored separately for large logs)
     entry_count: int = 0
     entries_file: str | None = None  # Path to parsed entries file
