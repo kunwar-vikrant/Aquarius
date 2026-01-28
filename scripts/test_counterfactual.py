@@ -301,9 +301,10 @@ async def main():
     # Options
     console.print("1. Traffic Incident (from test_data/traffic_incident_001)")
     console.print("2. DevOps Incident - Database Cascade Failure (from test_data/devops_incident_001)")
-    console.print("3. Custom data directory")
+    console.print("3. Financial Incident - Algo Trading Flash Crash (from test_data/financial_incident_001)")
+    console.print("4. Custom data directory")
     
-    choice = console.input("\nChoice [1-3]: ").strip()
+    choice = console.input("\nChoice [1-4]: ").strip()
     
     if choice == "1":
         data_dir = Path(__file__).parent.parent / "test_data" / "traffic_incident_001"
@@ -316,10 +317,15 @@ async def main():
         description = "Marketing traffic spike caused DB connection exhaustion, leading to API failures and customer impact"
         domain = "devops"
     elif choice == "3":
+        data_dir = Path(__file__).parent.parent / "test_data" / "financial_incident_001"
+        incident_name = "ALGO-7734 Flash Crash Event"
+        description = "Trading algorithm malfunction caused by market data feed latency triggered aggressive selling, resulting in $7M loss and market disruption"
+        domain = "financial"
+    elif choice == "4":
         data_dir = Path(console.input("Enter path to data directory: ").strip())
         incident_name = console.input("Incident name: ").strip()
         description = console.input("Brief description: ").strip()
-        domain = console.input("Domain (traffic/devops/business/general): ").strip() or "general"
+        domain = console.input("Domain (traffic/devops/financial/business/general): ").strip() or "general"
     else:
         console.print("[red]Invalid choice[/red]")
         return

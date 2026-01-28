@@ -209,6 +209,8 @@ class InterventionGenerator:
             interventions.extend(self._traffic_interventions(timeline))
         elif domain == "devops":
             interventions.extend(self._devops_interventions(timeline))
+        elif domain == "financial":
+            interventions.extend(self._financial_interventions(timeline))
         elif domain == "business":
             interventions.extend(self._business_interventions(timeline))
         else:
@@ -324,6 +326,51 @@ class InterventionGenerator:
                 original_value="low",
                 counterfactual_value="high",
                 hypothesis="Addressing concerns would lead to different choice",
+            ),
+        ]
+    
+    def _financial_interventions(self, timeline: Timeline) -> list[Intervention]:
+        """Standard financial/trading incident interventions."""
+        return [
+            Intervention(
+                intervention_type=InterventionType.SYSTEM_CAPABILITY,
+                description="Price gap filter pauses trading on feed recovery",
+                parameter_name="price_gap_filter",
+                original_value="disabled",
+                counterfactual_value="enabled (0.1% threshold)",
+                hypothesis="Gap filter would detect stale-to-fresh price discontinuity and pause for validation",
+            ),
+            Intervention(
+                intervention_type=InterventionType.PARAMETER_CHANGE,
+                description="Kill switch threshold reduced to $1M loss",
+                parameter_name="kill_switch_threshold",
+                original_value="$2.5M",
+                counterfactual_value="$1M",
+                hypothesis="Lower threshold would halt algorithm earlier, limiting total loss",
+            ),
+            Intervention(
+                intervention_type=InterventionType.SYSTEM_CAPABILITY,
+                description="Human confirmation required for extreme signals",
+                parameter_name="human_confirmation",
+                original_value="not_required",
+                counterfactual_value="required for |momentum| > 4.0",
+                hypothesis="Human review would catch erroneous extreme signals before execution",
+            ),
+            Intervention(
+                intervention_type=InterventionType.PARAMETER_CHANGE,
+                description="Soft rate limit cannot be bypassed without approval",
+                parameter_name="soft_limit_bypass",
+                original_value="auto_bypass_on_critical",
+                counterfactual_value="requires_manual_approval",
+                hypothesis="Preventing auto-bypass would throttle order flow during anomalies",
+            ),
+            Intervention(
+                intervention_type=InterventionType.BEHAVIOR_SUBSTITUTION,
+                description="Use limit orders with IOC instead of market orders",
+                parameter_name="order_type",
+                original_value="MARKET",
+                counterfactual_value="LIMIT with IOC",
+                hypothesis="Limit orders would cap slippage and prevent trading through thin liquidity",
             ),
         ]
     
