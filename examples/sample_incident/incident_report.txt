@@ -1,0 +1,78 @@
+TRAFFIC INCIDENT REPORT
+=======================
+
+Date: January 15, 2024
+Time: 14:30:08 (approximately)
+Location: Main Street & Oak Avenue Intersection
+
+SUMMARY
+-------
+Two-vehicle collision at controlled intersection. Vehicle A (northbound) 
+entered intersection on yellow/red light. Vehicle B (eastbound) entered
+intersection on green light. Side-impact collision occurred.
+
+VEHICLES INVOLVED
+-----------------
+Vehicle A:
+- Type: Sedan
+- Direction: Northbound on Main Street
+- Estimated speed at approach: 45 mph
+- Estimated speed at impact: 5 mph
+- Driver attempted hard braking approximately 4 seconds before impact
+
+Vehicle B:
+- Type: SUV  
+- Direction: Eastbound on Oak Avenue
+- Estimated speed at approach: 25 mph
+- Estimated speed at impact: 28 mph (accelerating on green)
+- Driver had right of way
+
+SEQUENCE OF EVENTS
+------------------
+1. Vehicle A approaching intersection at approximately 45 mph
+2. Traffic signal for Vehicle A changed to yellow at T-6 seconds
+3. Vehicle A driver delayed braking decision by approximately 2 seconds
+4. Hard braking initiated at T-4 seconds (speed ~44 mph)
+5. Traffic signal changed to red at T-2 seconds
+6. Vehicle B entered intersection on green signal at T-0.5 seconds
+7. Collision occurred at T=0 (14:30:08.5)
+8. Both vehicles came to complete stop within 1 second of impact
+
+DAMAGE ASSESSMENT
+-----------------
+Vehicle A: Front-right quarter panel damage, airbags did not deploy
+Vehicle B: Driver-side door damage, minor airbag deployment
+
+INJURIES
+--------
+Vehicle A driver: Minor whiplash, transported to hospital for evaluation
+Vehicle B driver: Bruising from seatbelt, declined medical transport
+Vehicle B passenger: No injuries reported
+
+CONTRIBUTING FACTORS
+--------------------
+1. Excessive approach speed (45 mph in 35 mph zone)
+2. Delayed braking response (2 second delay after yellow light)
+3. Short yellow light duration (4 seconds standard)
+
+WITNESS STATEMENTS
+------------------
+Witness 1 (pedestrian): "The silver car [Vehicle A] was going pretty fast. 
+The light had already turned yellow when they were still far from the 
+intersection."
+
+Witness 2 (stopped vehicle): "I saw the SUV [Vehicle B] start to go when
+their light turned green. Then the other car came through."
+
+OFFICER NOTES
+-------------
+Weather: Clear, dry conditions
+Visibility: Good
+Road surface: Dry asphalt
+Traffic control: Functioning properly
+
+CITATIONS ISSUED
+----------------
+Vehicle A driver: Failure to stop at red light, Speeding in school zone
+
+Report filed by: Officer J. Smith, Badge #4521

@@ -1,0 +1,15 @@
+{"timestamp": "2024-01-15T14:30:00.000Z", "vehicle_id": "vehicle_a", "speed_mph": 45, "acceleration": 0.0, "position": {"x": 100, "y": 0}, "brake_pressure": 0, "throttle": 0.3}
+{"timestamp": "2024-01-15T14:30:01.000Z", "vehicle_id": "vehicle_a", "speed_mph": 45, "acceleration": 0.0, "position": {"x": 85, "y": 0}, "brake_pressure": 0, "throttle": 0.3}
+{"timestamp": "2024-01-15T14:30:02.000Z", "vehicle_id": "vehicle_a", "speed_mph": 45, "acceleration": 0.0, "position": {"x": 70, "y": 0}, "brake_pressure": 0, "throttle": 0.3, "event": "traffic_light_yellow"}
+{"timestamp": "2024-01-15T14:30:03.000Z", "vehicle_id": "vehicle_a", "speed_mph": 44, "acceleration": -1.0, "position": {"x": 55, "y": 0}, "brake_pressure": 0.1, "throttle": 0.0}
+{"timestamp": "2024-01-15T14:30:04.000Z", "vehicle_id": "vehicle_a", "speed_mph": 40, "acceleration": -4.0, "position": {"x": 42, "y": 0}, "brake_pressure": 0.5, "throttle": 0.0, "event": "hard_braking_initiated"}
+{"timestamp": "2024-01-15T14:30:05.000Z", "vehicle_id": "vehicle_a", "speed_mph": 32, "acceleration": -8.0, "position": {"x": 32, "y": 0}, "brake_pressure": 1.0, "throttle": 0.0}
+{"timestamp": "2024-01-15T14:30:06.000Z", "vehicle_id": "vehicle_a", "speed_mph": 22, "acceleration": -10.0, "position": {"x": 24, "y": 0}, "brake_pressure": 1.0, "throttle": 0.0, "event": "traffic_light_red"}
+{"timestamp": "2024-01-15T14:30:07.000Z", "vehicle_id": "vehicle_a", "speed_mph": 15, "acceleration": -7.0, "position": {"x": 18, "y": 0}, "brake_pressure": 1.0, "throttle": 0.0}
+{"timestamp": "2024-01-15T14:30:07.500Z", "vehicle_id": "vehicle_b", "speed_mph": 25, "acceleration": 2.0, "position": {"x": 0, "y": 30}, "brake_pressure": 0, "throttle": 0.4, "event": "vehicle_b_enters_intersection"}
+{"timestamp": "2024-01-15T14:30:08.000Z", "vehicle_id": "vehicle_a", "speed_mph": 10, "acceleration": -5.0, "position": {"x": 12, "y": 0}, "brake_pressure": 1.0, "throttle": 0.0}
+{"timestamp": "2024-01-15T14:30:08.200Z", "vehicle_id": "vehicle_a", "speed_mph": 8, "acceleration": -10.0, "position": {"x": 8, "y": 0}, "brake_pressure": 1.0, "throttle": 0.0, "event": "collision_imminent"}
+{"timestamp": "2024-01-15T14:30:08.500Z", "vehicle_id": "vehicle_a", "speed_mph": 5, "acceleration": -15.0, "position": {"x": 5, "y": 2}, "brake_pressure": 1.0, "throttle": 0.0, "event": "collision", "collision_speed_mph": 5, "collision_partner": "vehicle_b"}
+{"timestamp": "2024-01-15T14:30:08.500Z", "vehicle_id": "vehicle_b", "speed_mph": 28, "acceleration": -20.0, "position": {"x": 5, "y": 8}, "brake_pressure": 1.0, "throttle": 0.0, "event": "collision", "collision_speed_mph": 28, "collision_partner": "vehicle_a"}
+{"timestamp": "2024-01-15T14:30:09.000Z", "vehicle_id": "vehicle_a", "speed_mph": 0, "acceleration": 0.0, "position": {"x": 6, "y": 3}, "brake_pressure": 1.0, "throttle": 0.0, "event": "vehicle_stopped"}
+{"timestamp": "2024-01-15T14:30:09.500Z", "vehicle_id": "vehicle_b", "speed_mph": 0, "acceleration": 0.0, "position": {"x": 8, "y": 12}, "brake_pressure": 1.0, "throttle": 0.0, "event": "vehicle_stopped"}

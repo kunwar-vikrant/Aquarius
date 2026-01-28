@@ -1,0 +1,193 @@
+"""Counterfactual and intervention models."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import Any
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field
+
+
+class InterventionType(str, Enum):
+    """Types of counterfactual interventions."""
+    
+    # Event modifications
+    REMOVE_EVENT = "remove_event"          # "What if X didn't happen?"
+    ADD_EVENT = "add_event"                # "What if Y happened?"
+    MODIFY_EVENT = "modify_event"          # "What if X was different?"
+    
+    # Timing modifications
+    DELAY_EVENT = "delay_event"            # "What if X happened later?"
+    ADVANCE_EVENT = "advance_event"        # "What if X happened earlier?"
+    
+    # Entity modifications
+    MODIFY_ENTITY = "modify_entity"        # "What if entity had property P?"
+    ADD_ENTITY = "add_entity"              # "What if there was another entity?"
+    REMOVE_ENTITY = "remove_entity"        # "What if entity wasn't there?"
+    
+    # Causal modifications
+    BREAK_LINK = "break_link"              # "What if A didn't cause B?"
+    ADD_LINK = "add_link"                  # "What if A caused B?"
+    
+    # Composite
+    NATURAL_LANGUAGE = "natural_language"  # Free-form "What if..."
+
+
+class Intervention(BaseModel):
+    """A counterfactual intervention (modification to the canonical timeline)."""
+    
+    id: UUID = Field(default_factory=uuid4)
+    
+    # Type of intervention
+    intervention_type: InterventionType
+    
+    # Natural language description
+    description: str
+    
+    # Structured intervention details (depends on type)
+    # For REMOVE_EVENT: {"event_id": "..."}
+    # For MODIFY_EVENT: {"event_id": "...", "modifications": {...}}
+    # For DELAY_EVENT: {"event_id": "...", "delay_seconds": 30}
+    # For MODIFY_ENTITY: {"entity_id": "...", "property": "...", "new_value": ...}
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    
+    # Intervention point in time
+    intervention_time: datetime | None = None
+    
+    # Target event/entity IDs
+    target_event_ids: list[UUID] = Field(default_factory=list)
+    target_entity_ids: list[UUID] = Field(default_factory=list)
+    
+    # Validation
+    is_valid: bool = True
+    validation_errors: list[str] = Field(default_factory=list)
+    
+    # Whether this violates physical constraints
+    violates_physics: bool = False
+    physics_violations: list[str] = Field(default_factory=list)
+
+
+class OutcomeSeverity(str, Enum):
+    """Severity classification of outcomes."""
+    
+    NONE = "none"
+    MINOR = "minor"
+    MODERATE = "moderate"
+    SEVERE = "severe"
+    CATASTROPHIC = "catastrophic"
+
+
+class OutcomeComparison(BaseModel):
+    """Comparison between canonical and counterfactual outcomes."""
+    
+    # Canonical outcome
+    canonical_outcome: str
+    canonical_severity: OutcomeSeverity
+    canonical_score: float  # 0.0 (best) to 1.0 (worst)
+    
+    # Counterfactual outcome
+    counterfactual_outcome: str
+    counterfactual_severity: OutcomeSeverity
+    counterfactual_score: float
+    
+    # Comparison
+    outcome_improved: bool
+    improvement_magnitude: float  # Positive = better, negative = worse
+    
+    # Key differences
+    diverging_events: list[str] = Field(default_factory=list)
+    prevented_events: list[str] = Field(default_factory=list)
+    new_events: list[str] = Field(default_factory=list)
+
+
+class Counterfactual(BaseModel):
+    """
+    A complete counterfactual analysis.
+    
+    Contains the intervention, the alternate timeline generated,
+    outcome comparison, and supporting evidence/explanation.
+    """
+    
+    id: UUID = Field(default_factory=uuid4)
+    incident_id: UUID
+    canonical_timeline_id: UUID
+    
+    # The intervention applied
+    intervention: Intervention
+    
+    # Reference to generated alternate timeline
+    alternate_timeline_id: UUID | None = None
+    
+    # Outcome comparison
+    outcome: OutcomeComparison | None = None
+    
+    # Overall confidence in this counterfactual (0.0 - 1.0)
+    confidence: float = 0.0
+    
+    # Confidence breakdown
+    confidence_breakdown: dict[str, float] = Field(default_factory=dict)
+    # e.g., {"evidence": 0.8, "physics": 0.9, "vlm_confidence": 0.7, "ensemble": 0.75}
+    
+    # Natural language explanation
+    explanation: str | None = None
+    
+    # Chain of reasoning
+    reasoning_chain: list[str] = Field(default_factory=list)
+    
+    # Evidence supporting this counterfactual
+    supporting_evidence: list[dict[str, Any]] = Field(default_factory=list)
+    
+    # VLM info
+    vlm_provider: str | None = None
+    vlm_model: str | None = None
+    vlm_raw_response: str | None = None
+    
+    # Processing info
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    processing_time_seconds: float | None = None
+    
+    # Whether this was auto-generated by Marathon agent
+    auto_generated: bool = False
+    generation_strategy: str | None = None
+    
+    # Human review
+    human_reviewed: bool = False
+    human_approved: bool | None = None
+    human_notes: str | None = None
+    
+    class Config:
+        json_encoders = {
+            UUID: str,
+            datetime: lambda v: v.isoformat(),
+        }
+
+
+class CounterfactualBatch(BaseModel):
+    """A batch of counterfactuals from autonomous exploration."""
+    
+    id: UUID = Field(default_factory=uuid4)
+    incident_id: UUID
+    
+    # Exploration strategy used
+    strategy: str
+    
+    # Counterfactuals in this batch
+    counterfactual_ids: list[UUID] = Field(default_factory=list)
+    
+    # Ranked outcomes (best first)
+    ranked_counterfactuals: list[UUID] = Field(default_factory=list)
+    
+    # Exploration stats
+    hypotheses_generated: int = 0
+    hypotheses_explored: int = 0
+    hypotheses_pruned: int = 0
+    
+    # Resource usage
+    total_processing_time_seconds: float = 0.0
+    total_vlm_tokens: int = 0
+    
+    # Timestamps
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: datetime | None = None
