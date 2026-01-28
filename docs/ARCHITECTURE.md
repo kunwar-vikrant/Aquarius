@@ -4,6 +4,16 @@
 
 The Counterfactual World Engine (CWE) is an agentic system that reconstructs and simulates alternate realities from real-world incident artifacts using Vision Language Models (VLMs) as the core reasoning engine.
 
+## Related Documentation
+
+| Document | Description |
+|----------|-------------|
+| [VLM Function Reference](VLM_FUNCTION_REFERENCE.md) | Complete API reference for all VLM function calls |
+| [Counterfactual Guide](COUNTERFACTUAL_GUIDE.md) | Simulation algorithm, intervention types, scoring |
+| [Timeline Construction](TIMELINE_CONSTRUCTION.md) | Multi-pass reasoning algorithm details |
+| [Providers Guide](PROVIDERS.md) | VLM provider configuration (Gemini, Grok, Claude, GPT-4) |
+| [Design Decisions](DECISIONS.md) | Architectural decision records |
+
 ## Core Capabilities
 
 1. **Multimodal Ingestion** - Ingest video, logs, reports, sensor data

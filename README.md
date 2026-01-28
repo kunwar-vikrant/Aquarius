@@ -35,6 +35,14 @@ cwe serve --port 8000
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design.
 
+### Additional Documentation
+
+- [VLM Function Reference](docs/VLM_FUNCTION_REFERENCE.md) - Complete reference for all VLM function calls
+- [Counterfactual Analysis Guide](docs/COUNTERFACTUAL_GUIDE.md) - How "what-if" simulations work
+- [Timeline Construction](docs/TIMELINE_CONSTRUCTION.md) - Multi-pass reasoning algorithm
+- [VLM Providers](docs/PROVIDERS.md) - Provider configuration and integration
+- [Design Decisions](docs/DECISIONS.md) - Architectural decision records
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Interface                            │
