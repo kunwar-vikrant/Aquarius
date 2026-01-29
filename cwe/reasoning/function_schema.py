@@ -543,3 +543,169 @@ def get_counterfactual_functions() -> list[VLMFunction]:
             },
         ),
     ]
+
+
+def get_video_analysis_functions() -> list[VLMFunction]:
+    """
+    Get simplified functions for video analysis.
+    
+    These have flattened schemas that work better with Gemini's function calling.
+    Avoids nested objects that can cause MALFORMED_FUNCTION_CALL errors.
+    """
+    
+    return [
+        VLMFunction(
+            name="set_timeline_bounds",
+            description="Set the start and end time of the analyzed video segment.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "start_time": {
+                        "type": "string",
+                        "description": "Start timestamp (ISO 8601 or MM:SS format)",
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "End timestamp (ISO 8601 or MM:SS format)",
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Location description if visible",
+                    },
+                },
+                "required": ["start_time", "end_time"],
+            },
+        ),
+        
+        VLMFunction(
+            name="register_entity",
+            description="Register a vehicle, person, or object seen in the video.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "entity_id": {
+                        "type": "string",
+                        "description": "Unique ID (e.g., 'v1', 'v2', 'pedestrian1')",
+                    },
+                    "entity_type": {
+                        "type": "string",
+                        "enum": ["vehicle", "pedestrian", "cyclist", "traffic_signal", "road_feature", "object"],
+                        "description": "Type of entity",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Descriptive name (e.g., 'Black SUV', 'Dark grey sedan')",
+                    },
+                    "vehicle_type": {
+                        "type": "string",
+                        "enum": ["sedan", "suv", "truck", "van", "motorcycle", "bus", "other"],
+                        "description": "For vehicles: specific type",
+                    },
+                    "color": {
+                        "type": "string",
+                        "description": "Primary color",
+                    },
+                    "license_plate": {
+                        "type": "string",
+                        "description": "License plate if visible",
+                    },
+                },
+                "required": ["entity_id", "entity_type", "name"],
+            },
+        ),
+        
+        VLMFunction(
+            name="emit_event",
+            description="Record an event in the timeline (movement, action, collision, etc.).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "timestamp": {
+                        "type": "string",
+                        "description": "Video timestamp in MM:SS format (e.g., '00:05')",
+                    },
+                    "event_type": {
+                        "type": "string",
+                        "enum": [
+                            "timeline_start", "timeline_end",
+                            "position_change", "velocity_change", "lane_change",
+                            "turn_signal", "braking", "acceleration",
+                            "collision", "near_miss",
+                            "traffic_signal_change", "observation",
+                            "pedestrian_action", "state_change",
+                        ],
+                        "description": "Type of event",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Detailed description of what happened",
+                    },
+                    "involved_entities": {
+                        "type": "string",
+                        "description": "Comma-separated entity IDs involved (e.g., 'v1,v2')",
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "description": "Confidence 0.0 to 1.0",
+                    },
+                },
+                "required": ["timestamp", "event_type", "description", "confidence"],
+            },
+        ),
+        
+        VLMFunction(
+            name="add_causal_link",
+            description="Establish a causal relationship between events.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "cause_description": {
+                        "type": "string",
+                        "description": "What caused/triggered the effect",
+                    },
+                    "effect_description": {
+                        "type": "string",
+                        "description": "What was caused/affected",
+                    },
+                    "relation": {
+                        "type": "string",
+                        "enum": ["causes", "enables", "prevents", "delays", "accelerates"],
+                        "description": "Type of causal relationship",
+                    },
+                    "mechanism": {
+                        "type": "string",
+                        "description": "How/why the cause led to the effect",
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "description": "Confidence 0.0 to 1.0",
+                    },
+                },
+                "required": ["cause_description", "effect_description", "relation", "mechanism", "confidence"],
+            },
+        ),
+        
+        VLMFunction(
+            name="flag_uncertainty",
+            description="Flag something uncertain that needs human review.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "context": {
+                        "type": "string",
+                        "description": "What you were analyzing",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "The uncertainty or ambiguity",
+                    },
+                    "impact": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                        "description": "How much this affects analysis",
+                    },
+                },
+                "required": ["context", "description"],
+            },
+        ),
+    ]

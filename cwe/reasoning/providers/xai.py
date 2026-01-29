@@ -38,7 +38,8 @@ class XAIProvider(VLMProvider):
     
     @property
     def default_model(self) -> str:
-        return "grok-4-1-fast-reasoning"
+        import os
+        return os.getenv("XAI_MODEL", "grok-4-1-fast-reasoning")
     
     def _get_client(self):
         """Get or create the xAI client (OpenAI-compatible)."""
@@ -98,10 +99,12 @@ class XAIProvider(VLMProvider):
                         with open(part.image_path, "rb") as f:
                             image_data = base64.standard_b64encode(f.read()).decode()
                         mime_type = part.mime_type or self._guess_mime_type(part.image_path)
+                        # OpenAI-compatible format for xAI /v1 endpoint
                         content.append({
                             "type": "image_url",
                             "image_url": {
                                 "url": f"data:{mime_type};base64,{image_data}",
+                                "detail": "high"  # Request high detail analysis
                             }
                         })
                     elif part.image_base64:
@@ -110,19 +113,23 @@ class XAIProvider(VLMProvider):
                             "type": "image_url",
                             "image_url": {
                                 "url": f"data:{mime_type};base64,{part.image_base64}",
+                                "detail": "high"
                             }
                         })
                     elif part.image_url:
                         content.append({
                             "type": "image_url",
-                            "image_url": {"url": part.image_url},
+                            "image_url": {
+                                "url": part.image_url,
+                                "detail": "high"
+                            }
                         })
             
             # Skip empty content messages (shouldn't happen for regular messages)
             if not content:
                 continue
                 
-            # Simplify if only text
+            # Simplify if only text (xAI accepts plain string for text-only)
             if len(content) == 1 and content[0]["type"] == "text":
                 content = content[0]["text"]
             
