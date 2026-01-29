@@ -285,15 +285,22 @@ class IncidentHandle:
         
         path = Path(path)
         
+        # Read raw content for context
+        try:
+            raw_content = path.read_text(errors="ignore")
+        except Exception as e:
+            logger.warning("Could not read log file", path=str(path), error=str(e))
+            raw_content = None
+        
         artifact = LogArtifact(
             incident_id=self._incident.id,
             filename=path.name,
             file_path=str(path),
             log_format=log_format,
+            raw_content=raw_content,
+            entry_count=len(raw_content.splitlines()) if raw_content else 0,
             metadata=metadata,
         )
-        
-        # TODO: Parse logs (detect format, extract entries, etc.)
         
         self._engine._artifacts[self._incident.id].append(artifact)
         self._incident.artifact_ids.append(artifact.id)
