@@ -107,17 +107,33 @@ class AnthropicProvider(VLMProvider):
             ".webp": "image/webp",
         }.get(ext, "image/jpeg")
     
-    def _convert_functions(self, functions: list[dict[str, Any]]) -> list[dict]:
-        """Convert function schemas to Anthropic tool format."""
+    def _convert_functions(self, functions: list) -> list[dict]:
+        """Convert function schemas to Anthropic tool format.
+        
+        Handles both VLMFunction objects and dict schemas.
+        """
+        from cwe.reasoning.function_schema import VLMFunction
+        
         if not functions:
             return []
         
         tools = []
         for func in functions:
+            # Handle VLMFunction objects
+            if isinstance(func, VLMFunction):
+                name = func.name
+                description = func.description
+                parameters = func.parameters
+            else:
+                # Handle dict schemas
+                name = func["name"]
+                description = func.get("description", "")
+                parameters = func.get("parameters", {})
+            
             tools.append({
-                "name": func["name"],
-                "description": func.get("description", ""),
-                "input_schema": func.get("parameters", {}),
+                "name": name,
+                "description": description,
+                "input_schema": parameters,
             })
         
         return tools

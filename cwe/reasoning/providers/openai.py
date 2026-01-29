@@ -99,19 +99,35 @@ class OpenAIProvider(VLMProvider):
             ".webp": "image/webp",
         }.get(ext, "image/jpeg")
     
-    def _convert_functions(self, functions: list[dict[str, Any]]) -> list[dict]:
-        """Convert function schemas to OpenAI tool format."""
+    def _convert_functions(self, functions: list) -> list[dict]:
+        """Convert function schemas to OpenAI tool format.
+        
+        Handles both VLMFunction objects and dict schemas.
+        """
+        from cwe.reasoning.function_schema import VLMFunction
+        
         if not functions:
             return []
         
         tools = []
         for func in functions:
+            # Handle VLMFunction objects
+            if isinstance(func, VLMFunction):
+                name = func.name
+                description = func.description
+                parameters = func.parameters
+            else:
+                # Handle dict schemas
+                name = func["name"]
+                description = func.get("description", "")
+                parameters = func.get("parameters", {})
+            
             tools.append({
                 "type": "function",
                 "function": {
-                    "name": func["name"],
-                    "description": func.get("description", ""),
-                    "parameters": func.get("parameters", {}),
+                    "name": name,
+                    "description": description,
+                    "parameters": parameters,
                 }
             })
         

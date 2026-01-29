@@ -282,8 +282,11 @@ class GeminiProvider(VLMProvider):
         Per Gemini docs, all functions should be in ONE Tool object:
         tools = types.Tool(function_declarations=[func1, func2, ...])
         config = types.GenerateContentConfig(tools=[tools])
+        
+        Handles both VLMFunction objects and dict schemas.
         """
         from google.genai import types
+        from cwe.reasoning.function_schema import VLMFunction
         
         if not functions:
             return []
@@ -291,10 +294,21 @@ class GeminiProvider(VLMProvider):
         # Build function declarations list
         function_declarations = []
         for func in functions:
+            # Handle VLMFunction objects
+            if isinstance(func, VLMFunction):
+                name = func.name
+                description = func.description
+                parameters = func.parameters
+            else:
+                # Handle dict schemas
+                name = func["name"]
+                description = func.get("description", "")
+                parameters = func.get("parameters", {})
+            
             function_declarations.append({
-                "name": func["name"],
-                "description": func.get("description", ""),
-                "parameters": func.get("parameters", {}),
+                "name": name,
+                "description": description,
+                "parameters": parameters,
             })
         
         # Return a single Tool with all function declarations
@@ -313,8 +327,9 @@ class GeminiProvider(VLMProvider):
         system_instruction, contents = self._convert_messages(messages)
         
         # Build generation config
+        # Note: Gemini 3 recommends temperature=1.0 for best reasoning
         generation_config = types.GenerateContentConfig(
-            temperature=kwargs.get("temperature", self.config.temperature),
+            temperature=kwargs.get("temperature", 1.0),  # Gemini 3 default
             max_output_tokens=kwargs.get("max_tokens", self.config.max_tokens),
             top_p=kwargs.get("top_p", self.config.top_p),
         )
@@ -328,11 +343,23 @@ class GeminiProvider(VLMProvider):
             tools = self._convert_functions(functions)
             generation_config.tools = tools
         
-        # Enable thinking if requested
+        # Enable thinking if requested (Gemini 3 uses thinking_level, Gemini 2 uses thinking_budget)
         if kwargs.get("enable_thinking", True):
-            generation_config.thinking_config = types.ThinkingConfig(
-                thinking_budget=kwargs.get("thinking_budget", 10000)
-            )
+            # Check if using Gemini 3 model
+            is_gemini_3 = "gemini-3" in self.model.lower()
+            if is_gemini_3:
+                # Gemini 3: use thinking_level (minimal, low, medium, high)
+                # For function calling, use "minimal" or "low" to avoid issues
+                # "minimal" is best for function calling - matches "no thinking" for most queries
+                thinking_level = kwargs.get("thinking_level", "minimal" if functions else "high")
+                generation_config.thinking_config = types.ThinkingConfig(
+                    thinking_level=thinking_level
+                )
+            else:
+                # Gemini 2: use thinking_budget
+                generation_config.thinking_config = types.ThinkingConfig(
+                    thinking_budget=kwargs.get("thinking_budget", 10000)
+                )
         
         start_time = time.time()
         

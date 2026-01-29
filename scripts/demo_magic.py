@@ -780,13 +780,23 @@ Call functions in order: set_timeline_bounds first, then register_entity for eac
     
     # Make the API call
     try:
+        # Detect Gemini 3 models for proper config
+        is_gemini_3 = "gemini-3" in model_name.lower()
+        
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             tools=[tools],
             tool_config=types.ToolConfig(
                 function_calling_config=types.FunctionCallingConfig(mode='AUTO')
             ),
+            # Gemini 3 recommends temperature=1.0, older models can use lower
+            temperature=1.0 if is_gemini_3 else 0.7,
         )
+        
+        # Add thinking config based on model version
+        if is_gemini_3:
+            # Gemini 3: use thinking_level
+            config.thinking_config = types.ThinkingConfig(thinking_level="low")
         
         visualizer.show_thinking("Processing video with Gemini Vision...")
         
@@ -944,20 +954,32 @@ async def run_live_mode_logs(logs_dir: Path, speed: float = 1.0):
     console.print("[bold]Analyzing logs with AI...[/bold]\n")
     
     from cwe.reasoning.providers.base import Message, ContentPart
-    from cwe.reasoning.function_schema import get_timeline_functions
+    # Use simplified functions that work better with Gemini 3 (flattened schemas)
+    from cwe.reasoning.function_schema import get_video_analysis_functions
     
-    functions = get_timeline_functions()
+    functions = get_video_analysis_functions()
     
-    prompt = f"""Analyze these system logs and extract:
-1. All entities (services, databases, components)
-2. Timeline of events with timestamps
-3. Causal chain leading to the incident
-4. Root cause analysis
+    prompt = f"""You are analyzing system logs to reconstruct an incident timeline.
 
-Logs:
+IMPORTANT: You MUST use the provided function calls to structure ALL your analysis. Do not explain in text - only use function calls.
+
+Your task:
+1. First, call set_timeline_bounds() to establish the time range
+2. Call register_entity() for EACH component/service/system mentioned  
+3. Call emit_event() for EACH significant log entry with its exact timestamp
+4. Call add_causal_link() to connect cause-effect relationships
+5. Call flag_uncertainty() for any unclear relationships
+
+Focus on:
+- The critical failure (root cause)
+- The cascade of errors
+- Key timestamps when things went wrong
+- Which components affected which others
+
+Logs to analyze:
 {log_content[:8000]}
 
-Use the provided functions to structure your analysis."""
+Begin analysis using function calls NOW."""
 
     visualizer.show_thinking("Analyzing log patterns...")
     
@@ -968,9 +990,22 @@ Use the provided functions to structure your analysis."""
             messages=[Message.user(prompt)],
             functions=functions,
             temperature=0.3,
+            enable_thinking=False,  # Disable thinking for function calling
         )
         
         console.print("\n[bold green]━━━ FUNCTION CALLS RECEIVED ━━━[/bold green]\n")
+        
+        # Debug: show raw response info
+        console.print(f"[dim]Response text: {bool(response.text)}[/dim]")
+        console.print(f"[dim]Function calls: {len(response.function_calls) if response.function_calls else 0}[/dim]")
+        console.print(f"[dim]Finish reason: {response.finish_reason}[/dim]")
+        if response.text:
+            console.print(f"[dim]Text preview: {response.text[:300]}...[/dim]\n")
+        
+        # Debug: show if we got text instead of function calls
+        if response.text and not response.function_calls:
+            console.print(f"[yellow]Note: Model returned text instead of function calls[/yellow]")
+            console.print(f"[dim]Text preview: {response.text[:200]}...[/dim]\n")
         
         # Process function calls
         if response.function_calls:
@@ -995,9 +1030,14 @@ Use the provided functions to structure your analysis."""
         return None
 
 
-async def run_live_counterfactual(results: dict, speed: float = 1.0):
+async def run_live_counterfactual(results: dict, speed: float = 1.0, domain: str = "auto"):
     """
     🔴 LIVE MODE: Run real counterfactual analysis.
+    
+    Args:
+        results: The analysis results from log/video analysis
+        speed: Animation speed multiplier
+        domain: The domain for counterfactual generation. If "auto", will try to detect from events.
     """
     from cwe.counterfactual import CounterfactualSimulator
     from cwe.reasoning.providers.base import VLMConfig, VLMProviderType
@@ -1005,6 +1045,26 @@ async def run_live_counterfactual(results: dict, speed: float = 1.0):
     print_section_header("LIVE COUNTERFACTUAL ANALYSIS", "🔮")
     
     console.print("[bold cyan]\"What if we could change the past?\"[/bold cyan]\n")
+    
+    # Auto-detect domain from events if not specified
+    if domain == "auto":
+        event_text = " ".join([e.get("desc", "") for e in results.get("events", [])])
+        entity_text = " ".join([e.get("name", "") for e in results.get("entities", [])])
+        all_text = (event_text + " " + entity_text).lower()
+        
+        # Financial indicators
+        if any(kw in all_text for kw in ["trading", "order", "smars", "price", "stock", "market", "shares", "p&l", "position"]):
+            domain = "financial"
+        # DevOps indicators  
+        elif any(kw in all_text for kw in ["database", "kubernetes", "pod", "cpu", "memory", "latency", "api", "server", "deployment"]):
+            domain = "devops"
+        # Traffic indicators
+        elif any(kw in all_text for kw in ["vehicle", "collision", "lane", "speed", "brake", "traffic", "road"]):
+            domain = "traffic"
+        else:
+            domain = "incident"  # Generic
+        
+        console.print(f"[dim]Auto-detected domain: {domain}[/dim]\n")
     
     # Get provider
     provider_name = os.getenv("VLM_PRIMARY_PROVIDER", "xai")
@@ -1045,7 +1105,7 @@ async def run_live_counterfactual(results: dict, speed: float = 1.0):
                 timeline=timeline,
                 interventions=None,
                 num_auto_interventions=3,
-                domain="traffic"
+                domain=domain
             )
             
             progress.update(task, description="Simulations complete!")
@@ -1138,6 +1198,11 @@ async def run_demo(scenario_name: str = "traffic", video_path: Optional[Path] = 
                         {"time": e["time"], "desc": e["desc"], "type": e["type"], "confidence": e.get("confidence", 0.8)}
                         for e in results["events"]
                     ], delay=0.4 / speed)
+                
+                # Run live counterfactual if we have events
+                if len(results["events"]) > 2:
+                    dramatic_pause(0.5)
+                    await run_live_counterfactual(results, speed)
         else:
             console.print("[red]Live mode requires --video or --logs path[/red]")
             return
