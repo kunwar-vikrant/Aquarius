@@ -299,19 +299,33 @@ class CounterfactualSimulator:
         # Get interventions
         if not interventions:
             logger.info("Generating interventions automatically")
-            # Use standard + VLM-generated
-            standard = self.generator.generate_standard_interventions(timeline, domain)
             
-            # Try to generate more with VLM
+            # PRIMARY: Use VLM to generate context-aware interventions
+            # This analyzes the actual incident and proposes relevant what-ifs
             try:
-                generated = await self.generator.generate_interventions(
+                interventions = await self.generator.generate_interventions(
                     timeline,
-                    num_interventions=max(0, num_auto_interventions - len(standard)),
+                    num_interventions=num_auto_interventions,
+                    focus_areas=None,  # Let VLM decide based on incident type
                 )
-                interventions = standard + generated
+                logger.info(f"VLM generated {len(interventions)} context-aware interventions")
             except Exception as e:
-                logger.warning("VLM intervention generation failed, using standard only", error=str(e))
-                interventions = standard
+                logger.warning("VLM intervention generation failed", error=str(e))
+                interventions = []
+            
+            # FALLBACK: If VLM didn't generate enough, supplement with domain standards
+            if len(interventions) < num_auto_interventions:
+                standard = self.generator.generate_standard_interventions(timeline, domain)
+                # Only add standards not already covered by VLM-generated ones
+                existing_types = {i.intervention_type for i in interventions}
+                for std in standard:
+                    if len(interventions) >= num_auto_interventions:
+                        break
+                    # Avoid duplicating similar intervention types
+                    if std.intervention_type not in existing_types:
+                        interventions.append(std)
+                        existing_types.add(std.intervention_type)
+                logger.info(f"Supplemented with {len(interventions) - len([i for i in interventions if i not in standard])} standard interventions")
         
         # Simulate each scenario
         for i, intervention in enumerate(interventions):
@@ -399,46 +413,87 @@ class CounterfactualSimulator:
         else:
             return OutcomeSeverity.MODERATE  # Default assumption
     
+    def _calculate_effectiveness(self, scenario: CounterfactualScenario) -> float:
+        """
+        Calculate normalized effectiveness score [0-1].
+        
+        Measures how much the intervention reduces harm:
+        - Full prevention = 1.0
+        - Severity reduction contributes proportionally
+        - No improvement = 0.0
+        """
+        if not scenario.outcome:
+            return 0.0
+        
+        outcome = scenario.outcome
+        
+        # Full prevention is maximum effectiveness
+        if not outcome.primary_outcome_occurred:
+            return 1.0
+        
+        # Otherwise, calculate based on severity reduction
+        severity_order = list(OutcomeSeverity)
+        orig_idx = severity_order.index(outcome.original_severity)
+        new_idx = severity_order.index(outcome.counterfactual_severity)
+        
+        if orig_idx == 0:  # Original was already NONE
+            return 0.0
+        
+        # Normalize severity reduction to [0, 1]
+        # e.g., CATASTROPHIC (4) -> MINOR (1) = reduction of 3/4 = 0.75
+        reduction = (orig_idx - new_idx) / orig_idx
+        return max(0.0, min(1.0, reduction))
+    
     def _rank_interventions(self, scenarios: list[CounterfactualScenario]) -> list[dict]:
-        """Rank interventions by effectiveness."""
+        """
+        Rank interventions using multiplicative scoring.
+        
+        Score = Effectiveness × Feasibility × Confidence
+        
+        This ensures:
+        - Impossible interventions score 0 (feasibility = 0)
+        - Ineffective interventions score 0 (effectiveness = 0)
+        - Uncertain simulations are penalized (low confidence)
+        """
         rankings = []
         
         for scenario in scenarios:
             if not scenario.outcome:
                 continue
             
-            # Calculate effectiveness score
-            score = 0
+            intervention = scenario.interventions[0] if scenario.interventions else None
+            if not intervention:
+                continue
             
-            # Outcome prevention is highest value
-            if not scenario.outcome.primary_outcome_occurred:
-                score += 100
+            outcome = scenario.outcome
             
-            # Severity reduction
-            severity_order = list(OutcomeSeverity)
-            orig_idx = severity_order.index(scenario.outcome.original_severity)
-            new_idx = severity_order.index(scenario.outcome.counterfactual_severity)
-            severity_reduction = orig_idx - new_idx
-            score += severity_reduction * 20
+            # E: Effectiveness [0-1] - how much harm is reduced?
+            effectiveness = self._calculate_effectiveness(scenario)
             
-            # Quantitative reductions
-            if scenario.outcome.injury_reduction_percent:
-                score += scenario.outcome.injury_reduction_percent * 0.5
-            if scenario.outcome.damage_reduction_percent:
-                score += scenario.outcome.damage_reduction_percent * 0.3
+            # F: Feasibility [0-1] - can we actually implement this?
+            feasibility = getattr(intervention, 'feasibility', 0.5)
             
-            # Adjust by confidence
-            score *= scenario.outcome.confidence
+            # C: Confidence [0-1] - how sure is the simulation?
+            confidence = outcome.confidence
+            
+            # Multiplicative combination: all factors must be good
+            score = effectiveness * feasibility * confidence
+            
+            # Also store raw score scaled to 0-100 for display
+            display_score = round(score * 100, 1)
             
             rankings.append({
-                "intervention": scenario.interventions[0].description if scenario.interventions else "",
-                "effectiveness_score": round(score, 1),
-                "prevented_outcome": not scenario.outcome.primary_outcome_occurred,
-                "severity_change": f"{scenario.outcome.original_severity.value} → {scenario.outcome.counterfactual_severity.value}",
-                "confidence": scenario.outcome.confidence,
+                "intervention": intervention.description,
+                "effectiveness_score": display_score,
+                "raw_score": round(score, 4),
+                "effectiveness": round(effectiveness, 3),
+                "feasibility": round(feasibility, 3),
+                "confidence": round(confidence, 3),
+                "prevented_outcome": not outcome.primary_outcome_occurred,
+                "severity_change": f"{outcome.original_severity.value} → {outcome.counterfactual_severity.value}",
             })
         
-        return sorted(rankings, key=lambda x: x["effectiveness_score"], reverse=True)
+        return sorted(rankings, key=lambda x: x["raw_score"], reverse=True)
     
     def _extract_findings(self, analysis: CounterfactualAnalysis) -> list[str]:
         """Extract key findings from analysis."""

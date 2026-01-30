@@ -823,9 +823,14 @@ Call functions in order: set_timeline_bounds first, then register_entity for eac
         while iteration < max_iterations:
             if not response.candidates or not response.candidates[0].content:
                 break
+            
+            # Safely get parts, handle None
+            parts = response.candidates[0].content.parts
+            if not parts:
+                break
                 
             has_function_calls = any(
-                part.function_call for part in response.candidates[0].content.parts
+                part.function_call for part in parts
                 if hasattr(part, 'function_call') and part.function_call
             )
             
@@ -834,7 +839,7 @@ Call functions in order: set_timeline_bounds first, then register_entity for eac
             
             # Build function responses
             function_responses = []
-            for part in response.candidates[0].content.parts:
+            for part in parts:
                 if hasattr(part, 'function_call') and part.function_call:
                     function_responses.append(types.Part.from_function_response(
                         name=part.function_call.name,
@@ -847,23 +852,29 @@ Call functions in order: set_timeline_bounds first, then register_entity for eac
             console.print(f"\n  [dim]Iteration {iteration + 1}: Continuing analysis...[/dim]")
             
             # Continue the conversation
-            response = await client.aio.models.generate_content(
-                model=model_name,
-                contents=[
-                    video_part,
-                    "Continue analyzing. Extract more events and causal links.",
-                    *function_responses,
-                ],
-                config=config,
-            )
+            try:
+                response = await client.aio.models.generate_content(
+                    model=model_name,
+                    contents=[
+                        video_part,
+                        "Continue analyzing. Extract more events and causal links.",
+                        *function_responses,
+                    ],
+                    config=config,
+                )
+            except Exception as e:
+                console.print(f"\n  [yellow]Iteration {iteration + 1} ended: {e}[/yellow]")
+                break
             
             # Process additional function calls
             if response.candidates and response.candidates[0].content:
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, 'function_call') and part.function_call:
-                        call = part.function_call
-                        args = dict(call.args) if call.args else {}
-                        visualizer.show_function_call(call.name, args, delay=0.3 / speed)
+                parts = response.candidates[0].content.parts
+                if parts:
+                    for part in parts:
+                        if hasattr(part, 'function_call') and part.function_call:
+                            call = part.function_call
+                            args = dict(call.args) if call.args else {}
+                            visualizer.show_function_call(call.name, args, delay=0.3 / speed)
             
             iteration += 1
         
@@ -938,17 +949,29 @@ async def run_live_mode_logs(logs_dir: Path, speed: float = 1.0):
     ))
     
     # Initialize provider
+    model_name = os.getenv(f"{provider_name.upper()}_MODEL")
+    
     if provider_name == "xai":
         from cwe.reasoning.providers.xai import XAIProvider
-        config = VLMConfig(provider=VLMProviderType.XAI, api_key=api_key)
+        config = VLMConfig(provider=VLMProviderType.XAI, api_key=api_key, model=model_name)
         provider = XAIProvider(config=config)
     elif provider_name == "gemini":
         from cwe.reasoning.providers.gemini import GeminiProvider
-        config = VLMConfig(provider=VLMProviderType.GEMINI, api_key=api_key)
+        config = VLMConfig(provider=VLMProviderType.GEMINI, api_key=api_key, model=model_name)
         provider = GeminiProvider(config=config)
+    elif provider_name == "anthropic":
+        from cwe.reasoning.providers.anthropic import AnthropicProvider
+        config = VLMConfig(provider=VLMProviderType.ANTHROPIC, api_key=api_key, model=model_name)
+        provider = AnthropicProvider(config=config)
+    elif provider_name == "openai":
+        from cwe.reasoning.providers.openai import OpenAIProvider
+        config = VLMConfig(provider=VLMProviderType.OPENAI, api_key=api_key, model=model_name)
+        provider = OpenAIProvider(config=config)
     else:
         console.print(f"[red]Unsupported provider: {provider_name}[/red]")
         return None
+    
+    console.print(f"  [green]✓[/green] Model: [bold]{model_name or 'default'}[/bold]")
     
     print_section_header("LIVE API STREAM", "🔴")
     console.print("[bold]Analyzing logs with AI...[/bold]\n")
@@ -1137,6 +1160,36 @@ async def run_live_counterfactual(results: dict, speed: float = 1.0, domain: str
             console.print(f"  [dim]Severity:[/dim] {scenario.outcome.original_severity.value} → {scenario.outcome.counterfactual_severity.value}")
         
         console.print()
+    
+    # Show intervention rankings with scores (the new multiplicative formula)
+    if analysis.intervention_ranking:
+        console.print("[bold cyan]📊 INTERVENTION RANKINGS (Score = E × F × C)[/bold cyan]")
+        console.print("[dim]   E=Effectiveness, F=Feasibility, C=Confidence[/dim]\n")
+        
+        for i, rank in enumerate(analysis.intervention_ranking, 1):
+            score = rank.get("raw_score", 0)
+            eff = rank.get("effectiveness", 0)
+            feas = rank.get("feasibility", 0)
+            conf = rank.get("confidence", 0)
+            prevented = rank.get("prevented_outcome", False)
+            
+            # Color based on score
+            if score >= 0.7:
+                score_color = "green"
+            elif score >= 0.4:
+                score_color = "yellow"
+            else:
+                score_color = "red"
+            
+            status = "✅" if prevented else "⚠️"
+            bar_width = 20
+            filled = int(score * bar_width)
+            bar = "█" * filled + "░" * (bar_width - filled)
+            
+            console.print(f"  {i}. [{score_color}]{bar}[/{score_color}] [bold]{score:.1%}[/bold] {status}")
+            console.print(f"     [dim]{rank.get('intervention', 'Unknown')[:60]}[/dim]")
+            console.print(f"     [dim]E={eff:.2f} × F={feas:.2f} × C={conf:.2f}[/dim]")
+            console.print()
     
     # Recommendations
     if analysis.recommendations:

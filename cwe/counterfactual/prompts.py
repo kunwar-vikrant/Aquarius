@@ -2,9 +2,9 @@
 Prompts for counterfactual reasoning.
 """
 
-INTERVENTION_GENERATION_PROMPT = """You are an expert incident analyst specializing in counterfactual reasoning.
+INTERVENTION_GENERATION_PROMPT = """You are a world-class incident analyst with expertise in causal inference, safety engineering, and counterfactual reasoning.
 
-Given the following incident timeline, generate meaningful "what-if" interventions that could have changed the outcome.
+Your task: Generate highly specific, context-aware "what-if" interventions for this incident.
 
 ## Original Incident
 {incident_summary}
@@ -20,21 +20,71 @@ Given the following incident timeline, generate meaningful "what-if" interventio
 
 ---
 
-Generate {num_interventions} counterfactual interventions. For each, consider:
+## Your Analysis Framework
 
-1. **Prevention Points**: Where could the causal chain have been broken?
-2. **Timing Sensitivity**: Which events had critical timing that, if changed, would alter the outcome?
-3. **Missing Safeguards**: What systems, behaviors, or policies could have prevented this?
-4. **Human Factors**: What different decisions could key actors have made?
-5. **Environmental Changes**: What external conditions could have changed the outcome?
+### Step 1: Identify the Causal Structure
+Before proposing interventions, mentally map:
+- **Root causes**: What initiated the chain of events?
+- **Proximate causes**: What directly caused the harm?
+- **Necessary conditions**: What HAD to be true for this outcome?
+- **Sufficient conditions**: What alone was enough to cause harm?
+- **Amplifying factors**: What made things worse than they could have been?
 
-Focus on interventions that are:
-- Realistic and actionable (not "what if physics worked differently")
-- Specific and testable
-- Likely to have meaningful impact on the outcome
-- Useful for generating recommendations
+### Step 2: Find Intervention Points
+Look for:
+1. **Breaking the chain**: Where could a single change prevent everything downstream?
+2. **Latent failures** (Reason's Swiss Cheese): What defenses were missing or failed?
+3. **Timing windows**: What if something happened seconds/minutes earlier or later?
+4. **Information gaps**: Who didn't know what they needed to know?
+5. **Decision points**: Where did someone choose A when B would have helped?
+6. **System gaps**: What automated safeguard should have existed?
 
-For each intervention, explain your hypothesis about why it would change the outcome.
+### Step 3: Generate SPECIFIC Interventions
+BAD (too generic): "Driver should have been more careful"
+GOOD (specific): "Driver checks mirrors before lane change at T-3.2s"
+
+BAD: "System should have better monitoring"  
+GOOD: "Memory usage alert triggers at 70% instead of 90%, giving 4min extra response time"
+
+BAD: "Better communication"
+GOOD: "Cross-traffic warning display shows approaching vehicles with 3s TTC"
+
+---
+
+## Generate {num_interventions} Counterfactual Interventions
+
+For each intervention, you MUST provide:
+
+1. **Name**: Short, descriptive (e.g., "Earlier AEB Activation", "Cross-traffic Alert System")
+
+2. **Type**: Choose the most fitting:
+   - `timing_shift`: Change WHEN something happened
+   - `parameter_change`: Change a value/threshold/setting  
+   - `behavior_substitution`: Replace an action with a different one
+   - `system_capability`: Add or enhance a technical system
+   - `event_removal`: Remove an event from the timeline (test necessity)
+   - `event_addition`: Add a new event (e.g., warning, alert, check)
+
+3. **Specific Description**: Exactly what changes and by how much?
+
+4. **Target**: Which entity or event is being modified?
+
+5. **Hypothesis**: WHY would this change the outcome? Be mechanistic:
+   - "At 60 km/h, 2s earlier braking = 33m less traveled = avoids collision point"
+   - "Circuit breaker at 50% errors = isolation in 200ms vs 2000ms = prevents cascade to DB tier"
+
+6. **Expected Impact**: low / medium / high / critical
+
+## Quality Criteria
+- ✅ Physically/technically plausible
+- ✅ Specific enough to simulate
+- ✅ Targets actual causal factors from this incident
+- ✅ Would generate actionable recommendations
+- ❌ NOT generic advice that applies to any incident
+- ❌ NOT impossible ("what if gravity didn't exist")
+- ❌ NOT trivial ("what if the incident didn't happen")
+
+Think deeply about THIS incident. What SPECIFICALLY could have been different?
 """
 
 COUNTERFACTUAL_SIMULATION_PROMPT = """You are an expert in causal reasoning and incident simulation.

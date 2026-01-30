@@ -215,11 +215,19 @@ class GeminiProvider(VLMProvider):
                 function_calling_config=types.FunctionCallingConfig(mode='AUTO')
             )
         
-        # Enable thinking if requested
+        # Enable thinking if requested - use thinking_level for Gemini 3, thinking_budget for older
         if kwargs.get("enable_thinking", True):
-            generation_config.thinking_config = types.ThinkingConfig(
-                thinking_budget=kwargs.get("thinking_budget", 10000)
-            )
+            is_gemini_3 = "gemini-3" in self.model.lower()
+            if is_gemini_3:
+                # Gemini 3 uses thinking_level ("low", "medium", "high")
+                generation_config.thinking_config = types.ThinkingConfig(
+                    thinking_level=kwargs.get("thinking_level", "low")
+                )
+            else:
+                # Older models use thinking_budget
+                generation_config.thinking_config = types.ThinkingConfig(
+                    thinking_budget=kwargs.get("thinking_budget", 10000)
+                )
         
         start_time = time.time()
         

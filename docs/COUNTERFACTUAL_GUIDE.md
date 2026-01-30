@@ -202,30 +202,59 @@ Be realistic about cascading effects. Consider:
 
 ### Score Formula
 
+Interventions are ranked using a **multiplicative scoring function** that ensures all factors must be favorable for a high score:
+
+$$\text{Score}(I) = E(I) \times F(I) \times C(I)$$
+
+| Factor | Symbol | Range | Description |
+|--------|--------|-------|-------------|
+| **Effectiveness** | $E(I)$ | [0, 1] | How much harm is prevented/reduced? |
+| **Feasibility** | $F(I)$ | [0, 1] | Can we realistically implement this? |
+| **Confidence** | $C(I)$ | [0, 1] | How certain is the simulation? |
+
+This multiplicative structure ensures:
+- **Impossible interventions score 0** — even perfect prevention is worthless if $F(I) = 0$
+- **Ineffective interventions score 0** — high feasibility doesn't help if $E(I) = 0$
+- **Uncertain simulations are penalized** — low confidence reduces score proportionally
+
 ```python
-def _calculate_effectiveness_score(
-    self,
-    scenario: CounterfactualScenario
-) -> float:
+def _rank_interventions(self, scenarios: list[CounterfactualScenario]) -> list[dict]:
     """
-    Calculate intervention effectiveness score.
-    
-    Formula:
-    score = (
-        100 if outcome_prevented else 0
-        + severity_reduction * 20
-        + injury_reduction * 0.5
-        + damage_reduction * 0.3
-    ) * confidence
-    
-    Where:
-    - outcome_prevented: Boolean, was catastrophic outcome avoided?
-    - severity_reduction: 0-5 scale (fatal=5, none=0)
-    - injury_reduction: Number of injuries prevented
-    - damage_reduction: Dollar amount of damage prevented
-    - confidence: VLM's confidence in the simulation (0-1)
+    Score = Effectiveness × Feasibility × Confidence
     """
+    for scenario in scenarios:
+        # E: Effectiveness [0-1] - normalized harm reduction
+        effectiveness = self._calculate_effectiveness(scenario)
+        
+        # F: Feasibility [0-1] - can we actually implement this?
+        feasibility = intervention.feasibility
+        
+        # C: Confidence [0-1] - how sure is the simulation?
+        confidence = outcome.confidence
+        
+        # Multiplicative: all factors must be good
+        score = effectiveness * feasibility * confidence
 ```
+
+### Effectiveness Calculation
+
+Effectiveness measures normalized harm reduction:
+
+- **Full prevention**: $E = 1.0$ (outcome completely avoided)
+- **Partial reduction**: $E = \frac{\text{original severity} - \text{new severity}}{\text{original severity}}$
+- **No improvement**: $E = 0.0$
+
+Example: CATASTROPHIC (4) → MINOR (1) = $(4-1)/4 = 0.75$
+
+### Feasibility Guidelines
+
+| Score | Description | Example |
+|-------|-------------|---------|
+| 0.0 - 0.2 | Impossible or unrealistic | "Car should have teleported" |
+| 0.3 - 0.5 | Requires major changes | Cultural/behavioral shifts |
+| 0.6 - 0.7 | Moderate effort | Policy changes, training |
+| 0.8 - 0.9 | Easy to implement | Configuration changes |
+| 1.0 | Trivial | Already supported, just enable |
 
 ### Severity Levels
 

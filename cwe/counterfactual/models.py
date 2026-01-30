@@ -86,6 +86,18 @@ class Intervention:
     # Reasoning for why this intervention is interesting
     hypothesis: str = ""
     
+    # Feasibility: How realistic is this intervention? (0.0 = impossible, 1.0 = trivial)
+    # Low: requires technology that doesn't exist, or impossible human behavior
+    # Medium: requires policy changes, training, or system upgrades
+    # High: could be implemented with existing technology/processes
+    feasibility: float = 0.5
+    
+    # Expected effect if intervention succeeds
+    expected_effect: str = ""
+    
+    # Rationale for choosing this feasibility score
+    feasibility_rationale: str = ""
+    
     def to_prompt(self) -> str:
         """Convert intervention to a prompt-friendly description."""
         if self.intervention_type == InterventionType.PARAMETER_CHANGE:
