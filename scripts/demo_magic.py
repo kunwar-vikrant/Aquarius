@@ -83,8 +83,29 @@ def animate_loading(message: str, duration: float = 2.0):
     while time.time() < end_time:
         console.print(f"\r{frames[i % len(frames)]} {message}", end="")
         time.sleep(0.1)
-        i += 1
-    console.print(f"\r✓ {message}   ")
+
+
+def save_analysis_report(analysis, source_name: str):
+    """Save counterfactual analysis as a markdown report."""
+    from cwe.counterfactual.report import format_counterfactual_report
+    
+    # Create reports directory if it doesn't exist
+    reports_dir = Path(__file__).parent.parent / "reports"
+    reports_dir.mkdir(exist_ok=True)
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = source_name.replace(" ", "_").replace("/", "_")[:50]
+    filename = f"{timestamp}_counterfactual_{safe_name}.md"
+    filepath = reports_dir / filename
+    
+    # Format and save report
+    try:
+        report_content = format_counterfactual_report(analysis, source_name)
+        filepath.write_text(report_content)
+        console.print(f"\n[green]📄 Report saved:[/green] [dim]{filepath}[/dim]")
+    except Exception as e:
+        console.print(f"\n[yellow]⚠️ Could not save report: {e}[/yellow]")
 
 def print_ascii_banner():
     """Print the CWE ASCII art banner."""
@@ -1206,11 +1227,15 @@ async def run_live_counterfactual(results: dict, speed: float = 1.0, domain: str
 async def run_demo(scenario_name: str = "traffic", video_path: Optional[Path] = None, speed: float = 1.0, live_mode: bool = False, logs_dir: Optional[Path] = None):
     """Run the magic demo."""
     
+    analysis_result = None
+    source_name = None
+    
     # ─────────────────────────────────────────────────────────────────────────
     # 🔴 LIVE MODE
     # ─────────────────────────────────────────────────────────────────────────
     if live_mode:
         if video_path and video_path.exists():
+            source_name = video_path.stem
             # Live video analysis
             results = await run_live_mode_video(video_path, speed)
             if results and results.get("events"):
@@ -1232,9 +1257,10 @@ async def run_demo(scenario_name: str = "traffic", video_path: Optional[Path] = 
                 # Run live counterfactual if we have events
                 if len(results["events"]) > 2:
                     dramatic_pause(0.5)
-                    await run_live_counterfactual(results, speed)
+                    analysis_result = await run_live_counterfactual(results, speed)
             
         elif logs_dir and logs_dir.exists():
+            source_name = logs_dir.name
             # Live log analysis
             results = await run_live_mode_logs(logs_dir, speed)
             if results and results.get("events"):
@@ -1255,10 +1281,14 @@ async def run_demo(scenario_name: str = "traffic", video_path: Optional[Path] = 
                 # Run live counterfactual if we have events
                 if len(results["events"]) > 2:
                     dramatic_pause(0.5)
-                    await run_live_counterfactual(results, speed)
+                    analysis_result = await run_live_counterfactual(results, speed)
         else:
             console.print("[red]Live mode requires --video or --logs path[/red]")
             return
+        
+        # Save report if analysis was successful
+        if analysis_result:
+            save_analysis_report(analysis_result, source_name or "live_analysis")
         
         # Final summary for live mode
         console.print()
