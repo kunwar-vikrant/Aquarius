@@ -173,8 +173,18 @@ class InterventionGenerator:
                 for call in response.function_calls:
                     if call.name == "propose_intervention":
                         args = call.arguments
+                        # Handle case where VLM returns comma-separated types
+                        intervention_type_str = args.get("intervention_type", "parameter_change")
+                        if "," in intervention_type_str:
+                            intervention_type_str = intervention_type_str.split(",")[0].strip()
+                        try:
+                            intervention_type = InterventionType(intervention_type_str)
+                        except ValueError:
+                            logger.warning("Invalid intervention type, using default", type=intervention_type_str)
+                            intervention_type = InterventionType.PARAMETER_CHANGE
+                        
                         intervention = Intervention(
-                            intervention_type=InterventionType(args.get("intervention_type", "parameter_change")),
+                            intervention_type=intervention_type,
                             description=args.get("description", ""),
                             target_entity_id=args.get("target_entity_id"),
                             target_event_id=args.get("target_event_id"),
