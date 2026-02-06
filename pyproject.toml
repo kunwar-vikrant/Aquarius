@@ -7,7 +7,7 @@ name = "counterfactual-world-engine"
 version = "0.1.0"
 description = "Agentic system for reconstructing and simulating alternate realities from incident artifacts using VLMs"
 readme = "README.md"
-license = "Apache-2.0"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 authors = [
     { name = "Multiverse Team" }
