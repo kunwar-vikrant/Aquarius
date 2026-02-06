@@ -685,14 +685,14 @@ class LiveAPIVisualizer:
             name = args.get("name", "Unknown")
             etype = args.get("entity_type", "unknown")
             console.print(f" [dim]→[/dim] [bold]{name}[/bold] [dim]({etype})[/dim]")
-            self.entities.append({"name": name, "type": etype, "color": color, "id": args.get("entity_id", "")})
+            self.entities.append({"name": name, "entity_type": etype, "color": color, "entity_id": args.get("entity_id", "")})
         elif func_name == "emit_event":
             ts = args.get("timestamp", "??:??")
             desc = args.get("description", "")[:50]
             etype = args.get("event_type", "observation")
             conf = args.get("confidence", 0.8)
             console.print(f" [dim]→[/dim] [cyan]{ts}[/cyan] {desc}...")
-            self.events.append({"time": ts, "desc": args.get("description", ""), "type": etype, "confidence": conf})
+            self.events.append({"timestamp": ts, "description": args.get("description", ""), "event_type": etype, "confidence": conf})
         elif func_name == "add_causal_link":
             mechanism = args.get("mechanism", "")[:40]
             console.print(f" [dim]→[/dim] [italic]{mechanism}...[/italic]")
@@ -1244,13 +1244,13 @@ async def run_demo(scenario_name: str = "traffic", video_path: Optional[Path] = 
                 
                 if results["entities"]:
                     render_entity_discovery([
-                        {"name": e["name"], "type": e["type"], "color": "cyan", "id": e.get("id", "")}
+                        {"name": e["name"], "type": e.get("entity_type", e.get("type", "unknown")), "color": "cyan", "id": e.get("entity_id", e.get("id", ""))}
                         for e in results["entities"]
                     ], delay=0.3 / speed)
                 
                 if results["events"]:
                     render_timeline_events([
-                        {"time": e["time"], "desc": e["desc"], "type": e["type"], "confidence": e.get("confidence", 0.8)}
+                        {"time": e.get("timestamp", e.get("time", "")), "desc": e.get("description", e.get("desc", "")), "type": e.get("event_type", e.get("type", "observation")), "confidence": e.get("confidence", 0.8)}
                         for e in results["events"]
                     ], delay=0.4 / speed)
                 
@@ -1268,13 +1268,13 @@ async def run_demo(scenario_name: str = "traffic", video_path: Optional[Path] = 
                 
                 if results["entities"]:
                     render_entity_discovery([
-                        {"name": e["name"], "type": e["type"], "color": "cyan", "id": e.get("id", "")}
+                        {"name": e["name"], "type": e.get("entity_type", e.get("type", "unknown")), "color": "cyan", "id": e.get("entity_id", e.get("id", ""))}
                         for e in results["entities"]
                     ], delay=0.3 / speed)
                 
                 if results["events"]:
                     render_timeline_events([
-                        {"time": e["time"], "desc": e["desc"], "type": e["type"], "confidence": e.get("confidence", 0.8)}
+                        {"time": e.get("timestamp", e.get("time", "")), "desc": e.get("description", e.get("desc", "")), "type": e.get("event_type", e.get("type", "observation")), "confidence": e.get("confidence", 0.8)}
                         for e in results["events"]
                     ], delay=0.4 / speed)
                 
