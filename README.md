@@ -206,8 +206,7 @@ ruff format cwe/
 ```
 
 ## License
-
-Apache 2.0 - See [LICENSE](LICENSE)
+See [LICENSE](LICENSE)
 
 ## Contributing
 
